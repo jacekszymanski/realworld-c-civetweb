@@ -4,6 +4,12 @@
 #include <unistd.h>
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <civetweb.h>
+
 int main(int argc, char *argv[]) {
   const char *cw_options[] = {
     "listening_ports", "8080",
@@ -11,4 +17,25 @@ int main(int argc, char *argv[]) {
     "error_log_file", "error.log",
     0
   };
+
+  struct mg_callbacks callbacks;
+  struct mg_context *ctx;
+
+  memset(&callbacks, 0, sizeof(callbacks));
+
+  ctx = mg_start(&callbacks, 0, cw_options);
+
+  if (ctx == NULL) {
+    fprintf(stderr, "Failed to start server.\n");
+    return EXIT_FAILURE;
+  }
+
+  while (1) {
+#ifdef _WIN32
+    Sleep(1000);
+#else
+    sleep(1);
+#endif
+  }
+
 }
