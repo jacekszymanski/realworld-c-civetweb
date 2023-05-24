@@ -30,4 +30,8 @@ int main(int argc, char *argv[]) {
     sleep(1);
   }
 
+  mg_stop(ctx);
+
+  return EXIT_SUCCESS;
+
 }
