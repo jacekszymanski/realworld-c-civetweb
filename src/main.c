@@ -1,12 +1,8 @@
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "platform/platform.h"
 
 #include <civetweb.h>
 
@@ -31,11 +27,7 @@ int main(int argc, char *argv[]) {
   }
 
   while (1) {
-#ifdef _WIN32
-    Sleep(1000);
-#else
     sleep(1);
-#endif
   }
 
 }
