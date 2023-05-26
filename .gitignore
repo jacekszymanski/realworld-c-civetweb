@@ -1,2 +1,7 @@
 .vscode
 result
+result-*
+build
+build-*
+source
+source-*
