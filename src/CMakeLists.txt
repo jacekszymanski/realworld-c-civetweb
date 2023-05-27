@@ -8,6 +8,10 @@ find_package(civetweb REQUIRED)
 
 include_directories(${civetweb_INCLUDE_DIR})
 
-add_executable(${TARGET_NAME} main.c stubs.c)
+add_executable(${TARGET_NAME}
+   main.c
+   stubs.c
+   db.c
+)
 
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
