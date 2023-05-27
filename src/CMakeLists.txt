@@ -9,6 +9,5 @@ find_package(civetweb REQUIRED)
 include_directories(${civetweb_INCLUDE_DIR})
 
 add_executable(${TARGET_NAME} main.c)
-target_link_libraries(${TARGET_NAME} ${civetweb_LIBRARY_DIR}/libcivetweb.a)
 
 install(TARGETS ${TARGET_NAME} DESTINATION bin)

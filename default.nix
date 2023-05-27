@@ -11,9 +11,9 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ cmake ];
   buildInputs = [ civetweb-dev ];
 
-  cmakeFlags = [
-    # FIXME: This is a hack to get the civetweb_embed library to be found.
-   "-Dcivetweb_LIBRARY_DIR=${civetweb-dev}/lib"
-  ];
+  preConfigure = ''
+    export LDFLAGS="-L${civetweb-dev}/lib -lcivetweb"
+    echo set LDFLAGS to $LDFLAGS
+  '';
 
 }
