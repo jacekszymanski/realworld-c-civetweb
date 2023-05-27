@@ -6,6 +6,8 @@
 
 #include <civetweb.h>
 
+#include "stubs.h"
+
 int main(int argc, char *argv[]) {
   const char *cw_options[] = {
     "listening_ports", "8080",
@@ -25,6 +27,8 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Failed to start server.\n");
     return EXIT_FAILURE;
   }
+
+  install_stubs(ctx);
 
   while (1) {
     sleep(1);
