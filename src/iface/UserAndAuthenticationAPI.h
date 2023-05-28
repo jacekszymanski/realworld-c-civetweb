@@ -3,11 +3,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "../../openapi/model/create_user_request.h"
-#include "../../openapi/model/generic_error_model.h"
-#include "../../openapi/model/login_200_response.h"
-#include "../../openapi/model/login_request.h"
-#include "../../openapi/model/update_current_user_request.h"
+#include "../openapi/model/create_user_request.h"
+#include "../openapi/model/generic_error_model.h"
+#include "../openapi/model/login_200_response.h"
+#include "../openapi/model/login_request.h"
+#include "../openapi/model/update_current_user_request.h"
 
 
 // Register a new user

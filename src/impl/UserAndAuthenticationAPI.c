@@ -3,8 +3,8 @@
 #include <ctype.h>
 #include "../iface/UserAndAuthenticationAPI.h"
 
-#include "../../openapi/model/new_user.h"
-#include "../../openapi/model/user.h"
+#include "../openapi/model/new_user.h"
+#include "../openapi/model/user.h"
 
 #define MAX_NUMBER_LENGTH 16
 #define MAX_BUFFER_LENGTH 4096
