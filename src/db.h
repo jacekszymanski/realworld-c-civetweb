@@ -3,6 +3,6 @@
 
 #include <sqlite3.h>
 
-int check_and_init_db(const char* db_path, sqlite3** db);
+int check_and_init_db(const char* db_path);
 
 #endif // __DB_H__

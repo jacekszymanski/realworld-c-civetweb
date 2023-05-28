@@ -72,7 +72,8 @@ const struct table tables[] = {
     { .name = NULL }
 };
 
-int check_and_init_db(char *dbpath, sqlite3 **db) {
+int check_and_init_db(char *dbpath) {
+  sqlite3 *db;
 
   /* check if file exists, if not, need to init the database */
   int needInit = 1;
@@ -82,11 +83,11 @@ int check_and_init_db(char *dbpath, sqlite3 **db) {
     fclose(fp);
   }
 
-  int rc = sqlite3_open_v2(dbpath, db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+  int rc = sqlite3_open_v2(dbpath, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 
-  if (rc != SQLITE_OK || sqlite3_db_readonly(*db, NULL)) {
-    fprintf(stderr, "Cannot open database for writing: %s\n", sqlite3_errmsg(*db));
-    sqlite3_close(*db);
+  if (rc != SQLITE_OK || sqlite3_db_readonly(db, NULL)) {
+    fprintf(stderr, "Cannot open database for writing: %s\n", sqlite3_errmsg(db));
+    sqlite3_close(db);
     return 1;
   }
 
@@ -94,14 +95,16 @@ int check_and_init_db(char *dbpath, sqlite3 **db) {
     /* init the database */
     for (int i = 0; tables[i].name; i++) {
       fprintf(stderr, "init table %s\n", tables[i].name);
-      rc = sqlite3_exec(*db, tables[i].sql, NULL, NULL, NULL);
+      rc = sqlite3_exec(db, tables[i].sql, NULL, NULL, NULL);
       if (rc != SQLITE_OK) {
-        fprintf(stderr, "Cannot init table %s: %s\n", tables[i].name, sqlite3_errmsg(*db));
-        sqlite3_close(*db);
+        fprintf(stderr, "Cannot init table %s: %s\n", tables[i].name, sqlite3_errmsg(db));
+        sqlite3_close(db);
         return 1;
       }
     }
   }
+
+  sqlite3_close(db);
 
   return 0;
 }

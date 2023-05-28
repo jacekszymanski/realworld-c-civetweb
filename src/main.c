@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
   struct mg_callbacks callbacks;
   struct mg_context *ctx;
 
-  sqlite3 *db;
+  check_and_init_db(DBPATH);
 
   memset(&callbacks, 0, sizeof(callbacks));
 
@@ -35,15 +35,12 @@ int main(int argc, char *argv[]) {
   }
 
   install_stubs(ctx);
-  check_and_init_db(DBPATH, &db);
 
   while (1) {
     sleep(1);
   }
 
   mg_stop(ctx);
-
-  sqlite3_close(db);
 
   return EXIT_SUCCESS;
 
