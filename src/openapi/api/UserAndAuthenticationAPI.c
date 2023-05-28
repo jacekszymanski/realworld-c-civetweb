@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "../iface/UserAndAuthenticationAPI.h"
+#include "UserAndAuthenticationAPI.h"
 
 #include "../openapi/model/new_user.h"
 #include "../openapi/model/user.h"
