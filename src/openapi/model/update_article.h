@@ -8,7 +8,7 @@
 #define _update_article_H_
 
 #include <string.h>
-#include "../external/cJSON.h"
+#include <cjson/cJSON.h>
 #include "../include/list.h"
 #include "../include/keyValuePair.h"
 #include "../include/binary.h"
