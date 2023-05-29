@@ -1,6 +1,12 @@
 #include <civetweb.h>
+#include <stdlib.h>
+
+#include "util.h"
+#include "log.h"
 
 #define BUF_INCR 4096
+
+const char* read_body_frags(struct mg_connection *conn);
 
 const char* get_request_content(struct mg_connection *conn) {
   const struct mg_request_info *ri = mg_get_request_info(conn);
@@ -10,13 +16,15 @@ const char* get_request_content(struct mg_connection *conn) {
     return NULL;
   }
   else if (content_length < 0) {
-    content = read_body_frags(conn);
+    return read_body_frags(conn);
   }
   else {
     content = malloc(content_length + 1);
     int read = mg_read(conn, content, content_length);
     content[read] = '\0';
+    DLOG("get_request_content: read %d bytes\n", read);
   }
+
   return content;
 }
 
@@ -35,10 +43,10 @@ const char* read_body_frags(struct mg_connection *conn) {
     total_read += read;
     if (total_read + 1 >= bufsize) {
       bufsize += BUF_INCR;
-      oldbuf = buf;
+      char* oldbuf = buf;
       buf = realloc(buf, bufsize + 1);
       if (buf == NULL) {
-        fprintf(stderr, "read_body_frags: realloc failed\n");
+        WLOG("%s", "read_body_frags: realloc failed\n");
         free(oldbuf);
         return NULL;
       }
@@ -47,6 +55,8 @@ const char* read_body_frags(struct mg_connection *conn) {
   }
 
   buf[total_read] = '\0';
+
+  DLOG("read_body_frags: read %d bytes\n", total_read);
 
   return buf;
 }

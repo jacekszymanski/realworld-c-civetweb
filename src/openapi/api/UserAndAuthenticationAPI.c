@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include "UserAndAuthenticationAPI.h"
 
-#include "../openapi/model/new_user.h"
-#include "../openapi/model/user.h"
+#include "../model/new_user.h"
+#include "../model/user.h"
+#include "../../db.h"
+#include "../../log.h"
 
 #define MAX_NUMBER_LENGTH 16
 #define MAX_BUFFER_LENGTH 4096
@@ -20,23 +23,32 @@
 login_200_response_t* UserAndAuthenticationAPI_createUser(create_user_request_t * body )
 {
   if (body == NULL) return NULL;
-  const new_user_t *new_user = body->new_user;
+  const new_user_t *new_user = body->user;
   if (new_user == NULL) return NULL;
 
   int res = db_create_user(new_user->username, new_user->email, new_user->password);
 
   if (res >= 0) {
-    user_t *user = user_create(new_user->email, NULL, new_user->username, NULL, NULL);
+    user_t *user = user_create(
+      strdup(new_user->email),
+      strdup(""),
+      strdup(new_user->username),
+      strdup(""),
+      strdup(""));
     if (user == NULL) return NULL;
 
     login_200_response_t *response = login_200_response_create(user);
     if (response == NULL) {
+      WLOGS("Failed to create login response");
       user_free(user);
       return NULL;
     }
 
+    TLOGS("created login response");
+
     return response;
   } else {
+    WLOGS("Failed to create user");
     return NULL;
   }
 
@@ -57,6 +69,8 @@ login_200_response_t* UserAndAuthenticationAPI_getCurrentUser()
 //
 login_200_response_t*
 UserAndAuthenticationAPI_login(login_request_t * body ) {
+  (void)body;
+
   return NULL;
 }
 
@@ -65,7 +79,9 @@ UserAndAuthenticationAPI_login(login_request_t * body ) {
 // Updated user information for current user
 //
 login_200_response_t*
-UserAndAuthenticationAPI_updateCurrentUser(apiClient_t *apiClient, update_current_user_request_t * body ) {
+UserAndAuthenticationAPI_updateCurrentUser(update_current_user_request_t * body ) {
+  (void)body;
+
   return NULL;
 }
 

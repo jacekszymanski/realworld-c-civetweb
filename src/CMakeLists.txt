@@ -8,10 +8,18 @@ find_package(civetweb REQUIRED)
 
 include_directories(${civetweb_INCLUDE_DIR})
 
+FILE(GLOB ModelFiles "openapi/model/*.c")
+FILE(GLOB HandlerFiles "openapi/handlers/*.c")
 add_executable(${TARGET_NAME}
    main.c
    stubs.c
    db.c
+   util.c
+
+   openapi/api/UserAndAuthenticationAPI.c
+   ${ModelFiles}
+   ${HandlerFiles}
+   openapi/util/list.c
 )
 
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
