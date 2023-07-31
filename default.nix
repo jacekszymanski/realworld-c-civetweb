@@ -7,7 +7,7 @@ stdenv.mkDerivation rec {
   src = ./src;
 
   nativeBuildInputs = [ cmake ];
-  buildInputs = with nur.repos.jacekszymanski; [
+  buildInputs = with nur.repos.jsz-dev; [
     civetweb-dev
     sqlite-dev
     l8w8jwt-dev
