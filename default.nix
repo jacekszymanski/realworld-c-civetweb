@@ -1,5 +1,8 @@
-{ stdenv, cmake, nur }:
+{ pkgs ? import <nixpkgs> {}, ... }:
 
+let
+  inherit (pkgs) stdenv cmake nur;
+in
 stdenv.mkDerivation rec {
   pname = "realworld-c-civetweb";
   version = "0.1.0";
