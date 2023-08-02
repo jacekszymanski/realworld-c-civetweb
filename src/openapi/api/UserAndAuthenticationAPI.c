@@ -34,7 +34,7 @@ login_200_response_t* UserAndAuthenticationAPI_createUser(create_user_request_t 
       strdup(""),
       strdup(new_user->username),
       strdup(""),
-      strdup(""));
+      strdup("https://static.productionready.io/images/smiley-cyrus.jpg"));
     if (user == NULL) return NULL;
 
     login_200_response_t *response = login_200_response_create(user);
