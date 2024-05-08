@@ -23,7 +23,7 @@ stdenv.mkDerivation rec {
     CFLAGS+=" -g -O0 -Wall -Wextra -Werror "
     CFLAGS+=" -Wno-unused-parameter -Wno-unused-variable "
     CFLAGS+=" -DLOGLEVEL=5 "
-    CFLAGS+=" -ffile-prefix-map=$(echo $NIX_BUILD_TOP|sed -e s,/private,,g)=/ "
+    CFLAGS+=" -ffile-prefix-map=$(echo $NIX_BUILD_TOP|sed -e s,/private,,g)/= "
 
     export CFLAGS
   '';
