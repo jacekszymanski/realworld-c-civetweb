@@ -1,7 +1,9 @@
-{ pkgs ? import <nixpkgs> {}, ... }:
+{ pkgs ? import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }
+, jsz-dev
+}:
 
 let
-  inherit (pkgs) stdenv cmake nur;
+  inherit (pkgs) stdenv cmake;
 in
 stdenv.mkDerivation rec {
   pname = "realworld-c-civetweb";
@@ -10,7 +12,7 @@ stdenv.mkDerivation rec {
   src = ./src;
 
   nativeBuildInputs = [ cmake ];
-  buildInputs = with nur.repos.jsz-dev; [
+  buildInputs = with jsz-dev; [
     civetweb-dev
     sqlite-dev
     l8w8jwt-dev
