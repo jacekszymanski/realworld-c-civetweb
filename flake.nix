@@ -25,5 +25,9 @@
         inherit realworld;
       };
       defaultPackage = realworld;
+      devShells.default = pkgs.mkShell {
+        inputsFrom = [ realworld ];
+        shellHook = "";
+      };
     }));
 }
