@@ -1,9 +1,8 @@
-{ pkgs ? import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }
-, jsz-dev
+{ pkgs ? (builtins.getFlake (toString ./.)).pkgs.${builtins.currentSystem}
 }:
 
 let
-  inherit (pkgs) stdenv cmake;
+  inherit (pkgs) stdenv cmake jsz-dev;
 in
 stdenv.mkDerivation rec {
   pname = "realworld-c-civetweb";

@@ -13,10 +13,14 @@
   outputs = { self, nixpkgs, flake-utils, nur-dev }:
     (flake-utils.lib.eachDefaultSystem (system:
     let
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config.packageOverrides = _: { inherit jsz-dev; };
+      };
       jsz-dev = import nur-dev { inherit pkgs; };
-      realworld = import ./. { inherit pkgs jsz-dev; };
+      realworld = import ./. { inherit pkgs; };
     in {
+      inherit pkgs;
       packages = {
         inherit realworld;
       };
