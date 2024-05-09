@@ -6,3 +6,4 @@ build-*
 source
 source-*
 data/
+.direnv/
