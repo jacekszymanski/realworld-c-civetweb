@@ -1,5 +1,6 @@
 #include <civetweb.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "util.h"
 #include "log.h"
@@ -59,4 +60,11 @@ const char* read_body_frags(struct mg_connection *conn) {
   DLOG("read_body_frags: read %d bytes\n", total_read);
 
   return buf;
+}
+
+char * safe_strdup(const char *s) {
+  if (s == NULL) {
+    return strdup("");
+  }
+  return strdup(s);
 }

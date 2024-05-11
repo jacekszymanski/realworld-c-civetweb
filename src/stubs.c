@@ -22,7 +22,6 @@ static int stub_handler(struct mg_connection *conn, void *cbdata) {
 
 void install_stubs(struct mg_context *ctx) {
 struct stub stubs[] = {
-    STUB("/api/users/login"),
     STUB("/api/user"),
     STUB("/api/profiles/*"),
     STUB("/api/profiles/*/follow"),

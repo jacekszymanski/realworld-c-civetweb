@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
 
   install_stubs(ctx);
   mg_set_request_handler(ctx, "/api/users", create_user_handler, NULL);
+  mg_set_request_handler(ctx, "/api/users/login", login_handler, NULL);
 
   while (1) {
     sleep(1);

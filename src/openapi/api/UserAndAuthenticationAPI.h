@@ -9,11 +9,13 @@
 #include "../model/login_request.h"
 #include "../model/update_current_user_request.h"
 
+#include "../../appctx.h"
+
 
 // Register a new user
 //
 login_200_response_t*
-UserAndAuthenticationAPI_createUser(create_user_request_t * body );
+UserAndAuthenticationAPI_createUser(struct reqctx *ctx, create_user_request_t * body );
 
 
 // Get current user
@@ -29,7 +31,7 @@ UserAndAuthenticationAPI_getCurrentUser();
 // Login for existing user
 //
 login_200_response_t*
-UserAndAuthenticationAPI_login(login_request_t * body );
+UserAndAuthenticationAPI_login(struct reqctx *ctx, login_request_t * body );
 
 
 // Update current user
