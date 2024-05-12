@@ -1,0 +1,2 @@
+- doesn't stop on initial open_db error
+- returns 500 on ordinary login failure
