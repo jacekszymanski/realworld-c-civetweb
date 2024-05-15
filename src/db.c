@@ -247,3 +247,56 @@ user_t *db_find_user_by_email(const char *email) {
 
   return user;
 }
+
+user_t *db_find_user_by_username(const char *username) {
+  sqlite3 *db;
+  user_t *user = NULL;
+
+  if (username == NULL || strlen(username) == 0 || open_db(&db) < 0) {
+    return NULL;
+  }
+
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db, "SELECT id, username, email, bio, image, password FROM users WHERE username = ?", -1, &stmt, NULL);
+  if (rc != SQLITE_OK) {
+    WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
+    sqlite3_close(db);
+    return NULL;
+  }
+
+
+  rc = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
+  if (rc != SQLITE_OK) {
+    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
+    sqlite3_close(db);
+    return NULL;
+  }
+
+  // execute statement
+  rc = sqlite3_step(stmt);
+
+  if (rc == SQLITE_ROW) {
+    DLOG("found user %s\n", username);
+    user = user_create(
+      safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // email
+      safe_strdup((const char *)sqlite3_column_text(stmt, 5)), // abusing token field for password
+      safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // username
+      safe_strdup((const char *)sqlite3_column_text(stmt, 3)), // bio
+      safe_strdup((const char *)sqlite3_column_text(stmt, 4))  // image
+    );
+
+    if (user == NULL) {
+      WLOGS("Cannot create user object");
+    }
+    else {
+      VLOGS("created user object");
+    }
+
+  }
+
+  sqlite3_finalize(stmt);
+  sqlite3_close(db);
+
+  return user;
+
+}

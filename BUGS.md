@@ -1,2 +1,3 @@
 - doesn't stop on initial open_db error
 - returns 500 on ordinary login failure
+- doesn't save image for new users

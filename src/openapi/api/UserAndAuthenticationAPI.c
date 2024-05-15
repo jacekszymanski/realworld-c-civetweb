@@ -13,6 +13,7 @@
 #include "../../log.h"
 #include "../../macros.h"
 #include "../../appctx.h"
+#include "../../util.h"
 
 #define MAX_NUMBER_LENGTH 16
 #define MAX_BUFFER_LENGTH 4096
@@ -64,9 +65,29 @@ login_200_response_t* UserAndAuthenticationAPI_createUser(struct reqctx *ctx, cr
 //
 // Gets the currently logged-in user
 //
-login_200_response_t* UserAndAuthenticationAPI_getCurrentUser()
-{
+login_200_response_t* UserAndAuthenticationAPI_getCurrentUser(struct reqctx *ctx) {
+  user_t *user = ctx->curuser;
+  if (user) {
+    VLOG("found current user %s\n", user->username);
+    user_t *user_copy = user_create(
+      safe_strdup(user->email),
+      safe_strdup(""),
+      safe_strdup(user->username),
+      safe_strdup(user->bio),
+      safe_strdup(user->image));
+
+    if (!user_copy) {
+      WLOGS("Failed to copy user");
+      return NULL;
+    }
+
+    return login_200_response_create(user_copy);
+  }
+
+  WLOGS("Failed to create response");
+
   return NULL;
+
 }
 
 // Existing user login

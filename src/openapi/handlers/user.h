@@ -5,5 +5,6 @@
 
 int create_user_handler(struct mg_connection *conn, void *cbdata);
 int login_handler(struct mg_connection *conn, void *cbdata);
+int get_current_user_handler(struct mg_connection *conn, void *cbdata);
 
 #endif // __HANDLERS_USER_H__

@@ -11,10 +11,12 @@
 #include "../../util.h"
 #include "../../log.h"
 #include "../../macros.h"
+#include "../../db.h"
 
 // forward decls to be moved to util
 int send_response(struct reqctx *ctx, cJSON* response_json);
 cJSON* parse_json_body(struct mg_connection* conn);
+int verify_logged_in(struct reqctx *ctx, int must);
 
 int create_user_handler(struct mg_connection* conn, void* cbdata) {
   (void)cbdata;
@@ -97,28 +99,58 @@ int login_handler(struct mg_connection* conn, void* cbdata) {
 
   cJSON* jsonbody = parse_json_body(conn);
 
-  NULL_FAIL_FAST(conn, jsonbody, 1, "parse request body");
+  NULL_FAIL_FAST(&ctx, jsonbody, 1, "parse request body");
 
   login_request_t* body = login_request_parseFromJSON(jsonbody);
 
   cJSON_Delete(jsonbody);
 
-  NULL_FAIL_FAST(conn, body, 1, "parse request body");
+  NULL_FAIL_FAST(&ctx, body, 1, "parse request body");
   TLOGS("parsed request body");
 
   login_200_response_t* response = UserAndAuthenticationAPI_login(&ctx, body);
   login_request_free(body);
   VLOGS("freed body");
 
-  NULL_FAIL_FAST(conn, response, 1, "login user");
+  NULL_FAIL_FAST(&ctx, response, 1, "login user");
   TLOGS("logged in user");
 
   cJSON* response_json = login_200_response_convertToJSON(response);
   login_200_response_free(response);
   VLOGS("freed response");
 
-  NULL_FAIL_FAST(conn, response_json, 1, "convert response to json");
+  NULL_FAIL_FAST(&ctx, response_json, 1, "convert response to json");
   TLOGS("converted response to json");
+
+  set_200_ok(&ctx);
+
+  int ret = send_response(&ctx, response_json);
+  cJSON_Delete(response_json);
+  VLOGS("freed response json");
+
+  return ret;
+}
+
+int get_current_user_handler(struct mg_connection* conn, void* cbdata) {
+  (void)cbdata;
+  struct reqctx ctx = REQCTX_INIT(conn);
+
+  verify_logged_in(&ctx, 1);
+  RESP_SENT_FAIL_FAST(&ctx, 1);
+
+  login_200_response_t* response = UserAndAuthenticationAPI_getCurrentUser(&ctx);
+
+  NULL_FAIL_FAST(&ctx, response, 1, "get current user");
+  TLOGS("got current user");
+
+  cJSON* response_json = login_200_response_convertToJSON(response);
+  login_200_response_free(response);
+  VLOGS("freed response");
+
+  NULL_FAIL_FAST(&ctx, response_json, 1, "convert response to json");
+  TLOGS("converted response to json");
+
+  set_200_ok(&ctx);
 
   int ret = send_response(&ctx, response_json);
   cJSON_Delete(response_json);
@@ -132,7 +164,7 @@ int send_response(struct reqctx *ctx, cJSON* response_json) {
   char *response_json_str = cJSON_PrintUnformatted(response_json);
   struct mg_connection* conn = ctx->conn;
 
-  NULL_FAIL_FAST(conn, response_json_str, 1, "convert response to json string");
+  NULL_FAIL_FAST(ctx, response_json_str, 1, "convert response to json string");
   TLOGS("converted response to json string");
 
   mg_printf(conn, "HTTP/1.1 %3d %s\r\n", ctx->respcode, ctx->errmsg);
@@ -160,5 +192,45 @@ cJSON* parse_json_body(struct mg_connection* conn) {
   free((void*)rawbody);
 
   return jsonbody;
+
+}
+
+// if must is 1, the user must be logged in; if 0, then not logged in is ok,
+// but if Authorization header is present, it must be for a valid user
+int verify_logged_in(struct reqctx *ctx, int must) {
+  const char* auth_header = mg_get_header(ctx->conn, "Authorization");
+  if (must) {
+    NULL_FAIL_FAST(ctx, auth_header, 1, "get Authorization header");
+  }
+  else {
+    if (auth_header == NULL) {
+      return 0;
+    }
+  }
+
+  if (strncmp(auth_header, "Token ", 6) != 0) {
+    const char* error_message = "Authorization header does not start with 'Token '";
+    WLOGS(error_message);
+    REQCTX_SET_ERROR(ctx, 401, error_message);
+    mg_send_http_error(ctx->conn, 401, "%s", error_message);
+    ctx->respsent = 1;
+    return 1;
+  }
+
+  // for now the "token" is simply the username, so extract and find the user
+  const char* username = auth_header + 6;
+  user_t* user = db_find_user_by_username(username);
+
+  if (user == NULL) {
+    const char* error_message = "Access token is invalid";
+    WLOGS(error_message);
+    REQCTX_SET_ERROR(ctx, 401, error_message);
+    mg_send_http_error(ctx->conn, 401, "%s", error_message);
+    ctx->respsent = 1;
+    return 1;
+  }
+
+  ctx->curuser = user;
+  return 0;
 
 }

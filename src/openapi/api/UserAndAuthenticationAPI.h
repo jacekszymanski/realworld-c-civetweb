@@ -23,7 +23,7 @@ UserAndAuthenticationAPI_createUser(struct reqctx *ctx, create_user_request_t * 
 // Gets the currently logged-in user
 //
 login_200_response_t*
-UserAndAuthenticationAPI_getCurrentUser();
+UserAndAuthenticationAPI_getCurrentUser(struct reqctx *ctx);
 
 
 // Existing user login

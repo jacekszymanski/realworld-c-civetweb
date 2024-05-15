@@ -4,6 +4,7 @@
 
 #include "util.h"
 #include "log.h"
+#include "appctx.h"
 
 #define BUF_INCR 4096
 
@@ -67,4 +68,9 @@ char * safe_strdup(const char *s) {
     return strdup("");
   }
   return strdup(s);
+}
+
+void set_200_ok(struct reqctx *ctx) {
+  ctx->respcode = 200;
+  ctx->errmsg = strdup("OK");
 }
