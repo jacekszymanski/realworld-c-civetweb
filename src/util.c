@@ -1,6 +1,9 @@
 #include <civetweb.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <cjson/cJSON.h>
 
 #include "util.h"
 #include "log.h"
@@ -72,6 +75,7 @@ char * safe_strdup(const char *s) {
   return strdup(s);
 }
 
+// TODO get rid of this function
 void set_200_ok(struct reqctx *ctx) {
   ctx->respcode = 200;
   ctx->errmsg = strdup("OK");
@@ -84,4 +88,44 @@ void reqctx_cleanup(struct reqctx *ctx) {
   if (ctx->curuser) {
     user_free(ctx->curuser);
   }
+  if (ctx->respjson) {
+    cJSON_Delete(ctx->respjson);
+  }
 }
+
+#define CHK_SEALED(ctx) if ((ctx)->respsealed) { WLOGS("reqctx: response already sealed, ignoring"); return; }
+
+void reqctx_set_error(struct reqctx *ctx, int code, const char *msg) {
+  CHK_SEALED(ctx);
+  SFREE(ctx->errmsg);
+  ctx->respcode = code;
+  if(msg) ctx->errmsg = strdup(msg);
+}
+
+void reqctx_set_errorf(struct reqctx *ctx, int code, const char *fmt, ...) {
+  CHK_SEALED(ctx);
+  SFREE(ctx->errmsg);
+  va_list args;
+  va_start(args, fmt);
+  char *msg;
+  vasprintf(&msg, fmt, args);
+  va_end(args);
+  reqctx_set_error(ctx, code, msg);
+  free(msg);
+}
+
+void reqctx_set_response(struct reqctx *ctx, int code, cJSON *json) {
+  CHK_SEALED(ctx);
+  ctx->respcode = code;
+  ctx->respjson = json;
+}
+
+void reqctx_set_resp_msg(struct reqctx *ctx, int code, cJSON *json, const char *msg)  {
+  CHK_SEALED(ctx);
+  SFREE(ctx->errmsg);
+  ctx->respcode = code;
+  ctx->respjson = json;
+  ctx->errmsg = strdup(msg);
+}
+
+#undef CHK_SEALED

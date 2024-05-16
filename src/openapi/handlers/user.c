@@ -15,7 +15,7 @@
 #include "../../appctx.h"
 
 // forward decls to be moved to util
-int send_response(struct reqctx *ctx, cJSON* response_json);
+int send_response(struct reqctx *ctx);
 cJSON* parse_json_body(struct mg_connection* conn);
 int verify_logged_in(struct reqctx *ctx, int must);
 
@@ -119,18 +119,14 @@ int login_handler(struct reqctx *ctx) {
   NULL_FAIL_FAST(ctx, response_json, 1, "convert response to json");
   TLOGS("converted response to json");
 
-  set_200_ok(ctx);
+  reqctx_set_resp_msg(ctx, 200, response_json, "OK");
 
-  int ret = send_response(ctx, response_json);
-  cJSON_Delete(response_json);
-  VLOGS("freed response json");
-
-  return ret;
+  return 0;
 }
 
 int get_current_user_handler(struct reqctx *ctx) {
   verify_logged_in(ctx, 1);
-  RESP_SENT_FAIL_FAST(ctx, 1);
+  RESP_SEALED_FAIL_FAST(ctx, 1);
 
   login_200_response_t* response = UserAndAuthenticationAPI_getCurrentUser(ctx);
 
@@ -144,13 +140,9 @@ int get_current_user_handler(struct reqctx *ctx) {
   NULL_FAIL_FAST(ctx, response_json, 1, "convert response to json");
   TLOGS("converted response to json");
 
-  set_200_ok(ctx);
+  reqctx_set_resp_msg(ctx, 200, response_json, "OK");
 
-  int ret = send_response(ctx, response_json);
-  cJSON_Delete(response_json);
-  VLOGS("freed response json");
-
-  return ret;
+  return 0;
 }
 
 // request_handler takes the real handler as cbdata and manages reqctx
@@ -168,6 +160,8 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
 
   int ret = handler(&ctx);
 
+  send_response(&ctx);
+
   reqctx_cleanup(&ctx);
 
   close_db(db);
@@ -177,11 +171,17 @@ int request_handler(struct mg_connection* conn, void* cbdata) {
 }
 
 // TODO move to util
-int send_response(struct reqctx *ctx, cJSON* response_json) {
-  char *response_json_str = cJSON_PrintUnformatted(response_json);
+int send_response(struct reqctx *ctx) {
+  char *response_json_str = cJSON_PrintUnformatted(ctx->respjson);
   struct mg_connection* conn = ctx->conn;
 
-  NULL_FAIL_FAST(ctx, response_json_str, 1, "convert response to json string");
+  // cannot use NULL_FAIL_FAST because response is almost certainly already sealed
+  if (response_json_str == NULL) {
+    const char *error_message = "failed to convert response to json string";
+    WLOGS(error_message);
+    mg_send_http_error(conn, 500, "%s", error_message);
+    return 1;
+  }
   TLOGS("converted response to json string");
 
   mg_printf(conn, "HTTP/1.1 %3d %s\r\n", ctx->respcode, ctx->errmsg);
@@ -227,11 +227,7 @@ int verify_logged_in(struct reqctx *ctx, int must) {
   }
 
   if (strncmp(auth_header, "Token ", 6) != 0) {
-    const char* error_message = "Authorization header does not start with 'Token '";
-    WLOGS(error_message);
-    REQCTX_SET_ERROR(ctx, 401, error_message);
-    mg_send_http_error(ctx->conn, 401, "%s", error_message);
-    ctx->respsent = 1;
+    SET_FAIL_CODE(ctx, 401, "parse Authorization header");
     return 1;
   }
 
@@ -240,11 +236,7 @@ int verify_logged_in(struct reqctx *ctx, int must) {
   user_t* user = db_find_user_by_username(ctx->db, username);
 
   if (user == NULL) {
-    const char* error_message = "Access token is invalid";
-    WLOGS(error_message);
-    REQCTX_SET_ERROR(ctx, 401, error_message);
-    mg_send_http_error(ctx->conn, 401, "%s", error_message);
-    ctx->respsent = 1;
+    SET_FAIL_CODE(ctx, 401, "verify token");
     return 1;
   }
 

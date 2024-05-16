@@ -90,6 +90,12 @@ login_200_response_t* UserAndAuthenticationAPI_getCurrentUser(struct reqctx *ctx
 
 }
 
+void bad_login(struct reqctx *ctx) {
+  const char *msg = "Bad email or password";
+  DLOGS(msg);
+  reqctx_set_error(ctx, 401, msg);
+}
+
 // Existing user login
 //
 // Login for existing user
@@ -98,52 +104,45 @@ login_200_response_t*
 UserAndAuthenticationAPI_login(struct reqctx *ctx, login_request_t * body ) {
   if (body == NULL) return NULL;
 
+  int login_ok = 0;
   login_200_response_t *response = NULL;
 
   const char *email = body->user->email;
   const char *password = body->user->password;
 
   if (!(email && *email && password && *password)) {
-    ILOGS("Bad email or password");
-    REQCTX_SET_ERROR(ctx, 401, "Bad email or password");
+    bad_login(ctx);
     return NULL;
   }
 
   user_t *user = db_find_user_by_email(ctx->db, email);
-
-  if (user == NULL) {
-    WLOGS("Error finding user by email");
-    return NULL;
-  }
+  NULL_FAIL_FAST(ctx, user, NULL, "find user by email");
 
   if (user->email == NULL || strcmp(user->token, password) != 0) {
-    DLOGS("Bad email or password");
-    REQCTX_SET_ERROR(ctx, 401, "Bad email or password");
+    bad_login(ctx);
   }
   else {
     response = login_200_response_create(user);
-    if (response == NULL) {
-      WLOGS("Failed to create login response");
-      REQCTX_SET_ERROR(ctx, 500, "Failed to create login response");
+    if (!response) {
+      SET_FAIL(ctx, "create login response");
     }
     else {
       // FIXME: when I have a real token...
       char *token = malloc(MAX_BUFFER_LENGTH);
-      if (token == NULL) {
-        WLOGS("Failed to create token");
-        REQCTX_SET_ERROR(ctx, 500, "Failed to create token");
+      if (!token) {
+        SET_FAIL(ctx, "create token");
       }
       else {
         snprintf(token, MAX_BUFFER_LENGTH, "%s:%s", "Token ", user->email);
         user->token = token;
         TLOGS("created login response");
 
-        REQCTX_SET_ERROR(ctx, 200, "User logged in");
+        login_ok = 1;
       }
     }
   }
 
-  if (ctx->respcode != 200) {
+  if (!login_ok) {
     DLOGS("failed to login user");
     user_free(user);
     if (response) response->user = NULL;
