@@ -32,7 +32,7 @@ login_200_response_t* UserAndAuthenticationAPI_createUser(struct reqctx *ctx, cr
   const new_user_t *new_user = body->user;
   if (new_user == NULL) return NULL;
 
-  int res = db_create_user(new_user->username, new_user->email, new_user->password);
+  int res = db_create_user(ctx->db, new_user->username, new_user->email, new_user->password);
 
   if (res >= 0) {
     user_t *user = user_create(
@@ -109,7 +109,7 @@ UserAndAuthenticationAPI_login(struct reqctx *ctx, login_request_t * body ) {
     return NULL;
   }
 
-  user_t *user = db_find_user_by_email(email);
+  user_t *user = db_find_user_by_email(ctx->db, email);
 
   if (user == NULL) {
     WLOGS("Error finding user by email");

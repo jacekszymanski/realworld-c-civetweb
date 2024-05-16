@@ -5,6 +5,7 @@
 #include "db.h"
 #include "log.h"
 #include "util.h"
+#include "appctx.h"
 
 #include "openapi/model/user.h"
 
@@ -79,8 +80,10 @@ const struct table tables[] = {
     { .name = NULL }
 };
 
+sqlite3 *__db; // only used with single db mode
+
 int _open_db(sqlite3 **db, int flags) {
-  int rc = sqlite3_open_v2(dbpath, db, flags, NULL);
+  int rc = sqlite3_open_v2(appctx.dbpath, db, flags, NULL);
 
   if (rc != SQLITE_OK || sqlite3_db_readonly(*db, NULL)) {
     WLOG("Cannot open database for writing: %s\n", sqlite3_errmsg(*db));
@@ -94,10 +97,50 @@ int _open_db(sqlite3 **db, int flags) {
 }
 
 int open_db(sqlite3 **db) {
-  return _open_db(db, SQLITE_OPEN_READWRITE);
+  if (appctx.__singledb) {
+    if (__db) {
+      *db = __db;
+      return 0;
+    }
+    else {
+      WLOGS("singledb enabled, but no db open");
+      return -1;
+    }
+  }
+  else {
+    return _open_db(db, SQLITE_OPEN_READWRITE);
+  }
+}
+
+int __close_db(sqlite3 *db, int notreally) {
+  if (notreally) {
+    return 0;
+  }
+
+  int rc = sqlite3_close(db);
+  if (rc != SQLITE_OK) {
+    WLOG("Cannot close database: %s\n", sqlite3_errmsg(db));
+    return -1;
+  }
+
+  VLOGS("closed database");
+  return 0;
+}
+
+int close_db(sqlite3 *db) {
+  return __close_db(db, appctx.__singledb);
+}
+
+int shutdown_db() {
+  return __close_db(__db, !appctx.__singledb);
 }
 
 int create_db(sqlite3 **db) {
+  if (__db) {
+    // wrong state here, handle already registered and still trying to create
+    WLOGS("create_db: db already open");
+    return -1;
+  }
   return _open_db(db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
 }
 
@@ -112,32 +155,40 @@ int check_and_init_db(const char *dbpath) {
     fclose(fp);
   }
 
-  if (!needInit) {
-    return 0;
-  }
+  if (needInit) {
 
-  if (create_db(&db) < 0) {
-    return -1;
-  }
+    if (create_db(&db) < 0) {
+      return -1;
+    }
 
-  /* init the database */
-  for (int i = 0; tables[i].name; i++) {
-    DLOG("init table %s\n", tables[i].name);
-    int rc = sqlite3_exec(db, tables[i].sql, NULL, NULL, NULL);
-    if (rc != SQLITE_OK) {
-      WLOG("Cannot init table %s: %s\n", tables[i].name, sqlite3_errmsg(db));
-      sqlite3_close(db);
-      return -2;
+    /* init the database */
+    for (int i = 0; tables[i].name; i++) {
+      DLOG("init table %s\n", tables[i].name);
+      int rc = sqlite3_exec(db, tables[i].sql, NULL, NULL, NULL);
+      if (rc != SQLITE_OK) {
+        WLOG("Cannot init table %s: %s\n", tables[i].name, sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return -2;
+      }
+    }
+  }
+  else {
+    if (_open_db(&db, SQLITE_OPEN_READWRITE) < 0) {
+      return -3;
     }
   }
 
-  sqlite3_close(db);
+  if (appctx.__singledb) {
+    __db = db;
+  }
+  else {
+    sqlite3_close(db);
+  }
 
   return 0;
 }
 
-int db_create_user(const char* username, const char* email, const char* password) {
-  sqlite3 *db;
+int db_create_user(sqlite3 *db, const char* username, const char* email, const char* password) {
 
   // TODO better checks on username, email, password
   if (username == NULL
@@ -155,7 +206,6 @@ int db_create_user(const char* username, const char* email, const char* password
   int rc = sqlite3_prepare_v2(db, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", -1, &stmt, NULL);
   if (rc != SQLITE_OK) {
     WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
     return -2;
   }
 
@@ -163,43 +213,41 @@ int db_create_user(const char* username, const char* email, const char* password
   rc = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
   if (rc != SQLITE_OK) {
     WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
+    sqlite3_finalize(stmt);
     return -3;
   }
 
   rc = sqlite3_bind_text(stmt, 2, email, -1, SQLITE_STATIC);
   if (rc != SQLITE_OK) {
     WLOG("Cannot bind email: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
+    sqlite3_finalize(stmt);
     return -4;
   }
 
   rc = sqlite3_bind_text(stmt, 3, password, -1, SQLITE_STATIC);
   if (rc != SQLITE_OK) {
     WLOG("Cannot bind password: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
+    sqlite3_finalize(stmt);
     return -5;
   }
 
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     WLOG("Cannot step statement: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
+    sqlite3_finalize(stmt);
     return -6;
   }
 
   DLOG("created user %s %s\n", username, email);
 
   sqlite3_finalize(stmt);
-  sqlite3_close(db);
 
   return 0;
 
 }
 
-user_t *db_find_user_by_email(const char *email) {
+user_t *db_find_user_by_email(sqlite3 *db, const char *email) {
   user_t *user = NULL;
-  sqlite3 *db;
 
   if (email == NULL || strlen(email) == 0 || open_db(&db) < 0) {
     return NULL;
@@ -209,14 +257,13 @@ user_t *db_find_user_by_email(const char *email) {
   int rc = sqlite3_prepare_v2(db, "SELECT id, username, email, bio, image, password FROM users WHERE email = ?", -1, &stmt, NULL);
   if (rc != SQLITE_OK) {
     WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
     return NULL;
   }
 
   rc = sqlite3_bind_text(stmt, 1, email, -1, SQLITE_STATIC);
   if (rc != SQLITE_OK) {
     WLOG("Cannot bind email: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
+    sqlite3_finalize(stmt);
     return NULL;
   }
 
@@ -243,13 +290,11 @@ user_t *db_find_user_by_email(const char *email) {
   }
 
   sqlite3_finalize(stmt);
-  sqlite3_close(db);
 
   return user;
 }
 
-user_t *db_find_user_by_username(const char *username) {
-  sqlite3 *db;
+user_t *db_find_user_by_username(sqlite3 *db, const char *username) {
   user_t *user = NULL;
 
   if (username == NULL || strlen(username) == 0 || open_db(&db) < 0) {
@@ -260,7 +305,6 @@ user_t *db_find_user_by_username(const char *username) {
   int rc = sqlite3_prepare_v2(db, "SELECT id, username, email, bio, image, password FROM users WHERE username = ?", -1, &stmt, NULL);
   if (rc != SQLITE_OK) {
     WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
     return NULL;
   }
 
@@ -268,7 +312,7 @@ user_t *db_find_user_by_username(const char *username) {
   rc = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
   if (rc != SQLITE_OK) {
     WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(db);
+    sqlite3_finalize(stmt);
     return NULL;
   }
 
@@ -295,7 +339,6 @@ user_t *db_find_user_by_username(const char *username) {
   }
 
   sqlite3_finalize(stmt);
-  sqlite3_close(db);
 
   return user;
 

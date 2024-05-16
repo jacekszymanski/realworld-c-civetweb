@@ -12,6 +12,7 @@
 #include "../../log.h"
 #include "../../macros.h"
 #include "../../db.h"
+#include "../../appctx.h"
 
 // forward decls to be moved to util
 int send_response(struct reqctx *ctx, cJSON* response_json);
@@ -156,11 +157,20 @@ int get_current_user_handler(struct reqctx *ctx) {
 int request_handler(struct mg_connection* conn, void* cbdata) {
   handler_t* handler = (handler_t*)cbdata;
 
-  struct reqctx ctx = REQCTX_INIT(conn);
+  sqlite3 *db;
+  if (open_db(&db) != 0) {
+    WLOGS("failed to open db");
+    mg_send_http_error(conn, 500, "failed to open db");
+    return 1;
+  }
+
+  struct reqctx ctx = REQCTX_INIT(conn, db);
 
   int ret = handler(&ctx);
 
   reqctx_cleanup(&ctx);
+
+  close_db(db);
 
   return ret;
 
@@ -227,7 +237,7 @@ int verify_logged_in(struct reqctx *ctx, int must) {
 
   // for now the "token" is simply the username, so extract and find the user
   const char* username = auth_header + 6;
-  user_t* user = db_find_user_by_username(username);
+  user_t* user = db_find_user_by_username(ctx->db, username);
 
   if (user == NULL) {
     const char* error_message = "Access token is invalid";

@@ -15,7 +15,7 @@
 
 #define DBPATH "data/conduit.db"
 
-char* dbpath;
+struct appctx appctx;
 
 int main(int argc, char *argv[]) {
   (void)argc;
@@ -31,7 +31,8 @@ int main(int argc, char *argv[]) {
   struct mg_callbacks callbacks;
   struct mg_context *ctx;
 
-  dbpath = DBPATH; /* TODO make it a cmdline param */
+  appctx.__singledb = 1;
+  appctx.dbpath = DBPATH;
 
   check_and_init_db(DBPATH);
 
@@ -54,6 +55,8 @@ int main(int argc, char *argv[]) {
   }
 
   mg_stop(ctx);
+
+  shutdown_db();
 
   return EXIT_SUCCESS;
 
