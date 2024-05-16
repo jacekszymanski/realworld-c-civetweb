@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <sqlite3.h>
+#include <civetweb.h>
 #include "macros.h"
 #include "openapi/model/user.h"
 
@@ -14,6 +15,9 @@ struct reqctx {
   user_t *curuser;
 };
 
+typedef struct reqctx reqctx_t;
+typedef int handler_t(reqctx_t *ctx);
+
 struct appctx {
   #ifdef SQLITE3_SERIALIZED
   sqlite3 *db;
@@ -24,5 +28,6 @@ struct appctx {
 #define REQCTX_INIT(conn) { conn, 500, strdup("Internal Server Error"), 0, NULL }
 #define REQCTX_FREE(ctx) do { SFREE(ctx->errmsg); } while (0)
 #define REQCTX_SET_ERROR(ctx, code, msg) do { ctx->respcode = code; SFREE(ctx->errmsg); ctx->errmsg = strdup(msg); } while (0)
+
 
 #endif // __APPCTX_H__

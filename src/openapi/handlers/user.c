@@ -18,9 +18,8 @@ int send_response(struct reqctx *ctx, cJSON* response_json);
 cJSON* parse_json_body(struct mg_connection* conn);
 int verify_logged_in(struct reqctx *ctx, int must);
 
-int create_user_handler(struct mg_connection* conn, void* cbdata) {
-  (void)cbdata;
-  struct reqctx ctx = REQCTX_INIT(conn);
+int create_user_handler(struct reqctx *ctx) {
+  struct mg_connection* conn = ctx->conn;
 
   const struct mg_request_info* ri = mg_get_request_info(conn);
   DLOG("create_user_handler: %s\n", ri->local_uri);
@@ -47,7 +46,7 @@ int create_user_handler(struct mg_connection* conn, void* cbdata) {
   }
   TLOGS("  parsed request body");
 
-  login_200_response_t* response = UserAndAuthenticationAPI_createUser(&ctx, body);
+  login_200_response_t* response = UserAndAuthenticationAPI_createUser(ctx, body);
   create_user_request_free(body);
   VLOGS("freed body");
 
@@ -93,70 +92,78 @@ int create_user_handler(struct mg_connection* conn, void* cbdata) {
   return 0;
 }
 
-int login_handler(struct mg_connection* conn, void* cbdata) {
-  (void)cbdata;
-  struct reqctx ctx = REQCTX_INIT(conn);
+int login_handler(struct reqctx *ctx) {
+  cJSON* jsonbody = parse_json_body(ctx->conn);
 
-  cJSON* jsonbody = parse_json_body(conn);
-
-  NULL_FAIL_FAST(&ctx, jsonbody, 1, "parse request body");
+  NULL_FAIL_FAST(ctx, jsonbody, 1, "parse request body");
 
   login_request_t* body = login_request_parseFromJSON(jsonbody);
 
   cJSON_Delete(jsonbody);
 
-  NULL_FAIL_FAST(&ctx, body, 1, "parse request body");
+  NULL_FAIL_FAST(ctx, body, 1, "parse request body");
   TLOGS("parsed request body");
 
-  login_200_response_t* response = UserAndAuthenticationAPI_login(&ctx, body);
+  login_200_response_t* response = UserAndAuthenticationAPI_login(ctx, body);
   login_request_free(body);
   VLOGS("freed body");
 
-  NULL_FAIL_FAST(&ctx, response, 1, "login user");
+  NULL_FAIL_FAST(ctx, response, 1, "login user");
   TLOGS("logged in user");
 
   cJSON* response_json = login_200_response_convertToJSON(response);
   login_200_response_free(response);
   VLOGS("freed response");
 
-  NULL_FAIL_FAST(&ctx, response_json, 1, "convert response to json");
+  NULL_FAIL_FAST(ctx, response_json, 1, "convert response to json");
   TLOGS("converted response to json");
 
-  set_200_ok(&ctx);
+  set_200_ok(ctx);
 
-  int ret = send_response(&ctx, response_json);
+  int ret = send_response(ctx, response_json);
   cJSON_Delete(response_json);
   VLOGS("freed response json");
 
   return ret;
 }
 
-int get_current_user_handler(struct mg_connection* conn, void* cbdata) {
-  (void)cbdata;
-  struct reqctx ctx = REQCTX_INIT(conn);
+int get_current_user_handler(struct reqctx *ctx) {
+  verify_logged_in(ctx, 1);
+  RESP_SENT_FAIL_FAST(ctx, 1);
 
-  verify_logged_in(&ctx, 1);
-  RESP_SENT_FAIL_FAST(&ctx, 1);
+  login_200_response_t* response = UserAndAuthenticationAPI_getCurrentUser(ctx);
 
-  login_200_response_t* response = UserAndAuthenticationAPI_getCurrentUser(&ctx);
-
-  NULL_FAIL_FAST(&ctx, response, 1, "get current user");
+  NULL_FAIL_FAST(ctx, response, 1, "get current user");
   TLOGS("got current user");
 
   cJSON* response_json = login_200_response_convertToJSON(response);
   login_200_response_free(response);
   VLOGS("freed response");
 
-  NULL_FAIL_FAST(&ctx, response_json, 1, "convert response to json");
+  NULL_FAIL_FAST(ctx, response_json, 1, "convert response to json");
   TLOGS("converted response to json");
 
-  set_200_ok(&ctx);
+  set_200_ok(ctx);
 
-  int ret = send_response(&ctx, response_json);
+  int ret = send_response(ctx, response_json);
   cJSON_Delete(response_json);
   VLOGS("freed response json");
 
   return ret;
+}
+
+// request_handler takes the real handler as cbdata and manages reqctx
+int request_handler(struct mg_connection* conn, void* cbdata) {
+  handler_t* handler = (handler_t*)cbdata;
+
+  struct reqctx ctx = REQCTX_INIT(conn);
+
+  int ret = handler(&ctx);
+
+  reqctx_cleanup(&ctx);
+
+  return ret;
+
 }
 
 // TODO move to util
@@ -178,6 +185,7 @@ int send_response(struct reqctx *ctx, cJSON* response_json) {
 
   return 0;
 }
+
 
 // TODO move to util
 cJSON* parse_json_body(struct mg_connection* conn) {

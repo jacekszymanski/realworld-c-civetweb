@@ -6,6 +6,8 @@
 #include "log.h"
 #include "appctx.h"
 
+#include "openapi/model/user.h"
+
 #define BUF_INCR 4096
 
 const char* read_body_frags(struct mg_connection *conn);
@@ -73,4 +75,13 @@ char * safe_strdup(const char *s) {
 void set_200_ok(struct reqctx *ctx) {
   ctx->respcode = 200;
   ctx->errmsg = strdup("OK");
+}
+
+void reqctx_cleanup(struct reqctx *ctx) {
+  if (ctx->errmsg) {
+    free(ctx->errmsg);
+  }
+  if (ctx->curuser) {
+    user_free(ctx->curuser);
+  }
 }

@@ -7,5 +7,6 @@
 const char* get_request_content(struct mg_connection* conn);
 char* safe_strdup(const char* s);
 void set_200_ok(struct reqctx* ctx);
+void reqctx_cleanup(struct reqctx* ctx);
 
 #endif // __UTIL_H__
