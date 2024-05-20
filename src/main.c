@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
   mg_set_request_handler(ctx, "/api/users", request_handler, create_user_handler);
   mg_set_request_handler(ctx, "/api/users/login", request_handler, login_handler);
   mg_set_request_handler(ctx, "/api/user", request_handler, get_current_user_handler);
+  mg_set_request_handler(ctx, "/api/profiles/*", request_handler, get_profile_handler);
 
   while (1) {
     sleep(1);
@@ -59,5 +60,4 @@ int main(int argc, char *argv[]) {
   shutdown_db();
 
   return EXIT_SUCCESS;
-
 }

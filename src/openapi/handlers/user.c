@@ -101,6 +101,36 @@ int get_current_user_handler(struct reqctx *ctx) {
   return 0;
 }
 
+int get_profile_handler(struct reqctx *ctx) {
+  // path is /api/profiles/*, so get the username from the uri
+  struct mg_request_info* ri = mg_get_request_info(ctx->conn);
+
+  char **matches = match_handler_pattern("/api/profiles/*", ri->local_uri);
+  NULL_FAIL_FAST(ctx, matches, 1, "match pattern");
+  NULL_FAIL_FAST(ctx, matches[0], 1, "get username");
+  const char* username = matches[0];
+
+  free(matches);
+
+  login_200_response_t* response = ProfileAPI_getProfileByUsername(ctx, username);
+
+  NULL_FAIL_FAST(ctx, response, 1, "get profile");
+  TLOGS("got profile");
+
+  free(username);
+
+  cJSON* response_json = login_200_response_convertToJSON(response);
+  login_200_response_free(response);
+  VLOGS("freed response");
+
+  NULL_FAIL_FAST(ctx, response_json, 1, "convert response to json");
+  TLOGS("converted response to json");
+
+  reqctx_set_resp_msg(ctx, 200, response_json, "OK");
+
+  return 0;
+}
+
 // request_handler takes the real handler as cbdata and manages reqctx
 int request_handler(struct mg_connection* conn, void* cbdata) {
   handler_t* handler = (handler_t*)cbdata;
