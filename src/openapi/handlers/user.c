@@ -20,42 +20,20 @@ cJSON* parse_json_body(struct mg_connection* conn);
 int verify_logged_in(struct reqctx *ctx, int must);
 
 int create_user_handler(struct reqctx *ctx) {
-  struct mg_connection* conn = ctx->conn;
-
-  const struct mg_request_info* ri = mg_get_request_info(conn);
-  DLOG("create_user_handler: %s\n", ri->local_uri);
-
-  const char* rawbody = get_request_content(conn);
-
-  cJSON* jsonbody = cJSON_Parse(rawbody);
-
-  free((void*)rawbody);
-
-  if (jsonbody == NULL) {
-    WLOGS("  failed to parse request body\n");
-    mg_send_http_error(conn, 500, "failed to parse request body");
-    return 1;
-  }
+  cJSON* jsonbody = parse_json_body(ctx->conn);
+  NULL_FAIL_FAST(ctx, jsonbody, 1, "parse request body");
 
   create_user_request_t* body = create_user_request_parseFromJSON(jsonbody);
   cJSON_Delete(jsonbody);
 
-  if (body == NULL) {
-    WLOGS("  failed to parse request body\n");
-    mg_send_http_error(conn, 500, "failed to parse request body");
-    return 1;
-  }
+  NULL_FAIL_FAST(ctx, body, 1, "parse request body");
   TLOGS("  parsed request body");
 
   login_200_response_t* response = UserAndAuthenticationAPI_createUser(ctx, body);
   create_user_request_free(body);
   VLOGS("freed body");
 
-  if (response == NULL) {
-    WLOGS("  failed to create user");
-    mg_send_http_error(conn, 500, "failed to create user");
-    return 1;
-  }
+  NULL_FAIL_FAST(ctx, response, 1, "create user");
   TLOGS("  created user");
 
   cJSON* response_json = login_200_response_convertToJSON(response);
@@ -63,32 +41,10 @@ int create_user_handler(struct reqctx *ctx) {
   login_200_response_free(response);
   VLOGS("freed response");
 
-  if (response_json == NULL) {
-    WLOGS("  failed to convert response to json");
-    mg_send_http_error(conn, 500, "failed to convert response to json");
-    return 1;
-  }
+  NULL_FAIL_FAST(ctx, response_json, 1, "convert response to json");
   TLOGS("  converted response to json");
 
-  char* response_json_str = cJSON_PrintUnformatted(response_json);
-  cJSON_Delete(response_json);
-  VLOGS("freed response json");
-
-  if (response_json_str == NULL) {
-    WLOGS("  failed to convert response to json string\n");
-    mg_send_http_error(conn, 500, "failed to convert response to json string");
-    return 1;
-  }
-  TLOGS("  converted response to json string");
-
-  mg_printf(conn, "HTTP/1.1 200 OK\r\n");
-  mg_printf(conn, "Content-Type: application/json\r\n");
-  mg_printf(conn, "Content-Length: %d\r\n", (int)strlen(response_json_str));
-  mg_printf(conn, "\r\n");
-  mg_printf(conn, "%s", response_json_str);
-  free(response_json_str);
-  VLOGS("  freed response json string");
-  TLOGS("  sent response");
+  reqctx_set_resp_msg(ctx, 200, response_json, "OK");
 
   return 0;
 }
