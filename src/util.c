@@ -68,6 +68,81 @@ const char* read_body_frags(struct mg_connection *conn) {
   return buf;
 }
 
+char **match_handler_pattern(const char *pattern, const char *uri) {
+  // patterns are of the form /path/*/resource/*, where * is a variable
+  // this function returns a newly allocated array of strings with the values of the variables
+  // or NULL if the pattern does not match the uri
+  // the query string is not considered
+
+  char **matches = NULL;
+
+  int failed = 0;
+
+  if (pattern == NULL || uri == NULL) {
+    return NULL;
+  }
+
+  // determine the number of variables
+  int nvars = 0;
+  const char *p = pattern;
+  while (*p != '\0') {
+    if (*p == '*') {
+      nvars++;
+    }
+    p++;
+  }
+
+  // allocate the array of strings and zero it
+  matches = malloc((nvars + 1) * sizeof(char*));
+  memset(matches, 0, (nvars + 1) * sizeof(char*));
+
+  int used_vars = 0;
+
+  p = pattern;
+  const char *u = uri;
+
+  while (*p != '\0' && *u != '\0') {
+    if (*p == '*') {
+      // skip the asterisk
+      p++;
+
+      // find the value's end
+      const char *end = u;
+      while (*end != '\0' && *end != '/') {
+        end++;
+      }
+      // copy the value
+      int len = end - u;
+      char *value = malloc(len + 1);
+      strncpy(value, u, len);
+      *(value + len) = '\0';
+
+      matches[used_vars] = value;
+      used_vars++;
+    }
+    else if (*p == *u) {
+      p++;
+      u++;
+    }
+    else {
+      failed = 1;
+    }
+  }
+
+  failed = failed || *p != '\0' || *u != '\0' || used_vars != nvars;
+
+  if (failed) {
+    for (int i = 0; i < nvars; i++) {
+      free(matches[i]);
+    }
+    free(matches);
+    return NULL;
+  }
+
+  return matches;
+
+}
+
 char * safe_strdup(const char *s) {
   if (s == NULL) {
     return strdup("");

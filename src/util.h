@@ -11,6 +11,8 @@ char* safe_strdup(const char* s);
 void set_200_ok(struct reqctx* ctx);
 void reqctx_cleanup(struct reqctx* ctx);
 
+char** match_handler_pattern(const char* pattern, const char* uri);
+
 void reqctx_set_error(struct reqctx* ctx, int code, const char* msg);
 void reqctx_set_errorf(struct reqctx* ctx, int code, const char* fmt, ...);
 void reqctx_set_response(struct reqctx* ctx, int code, cJSON* json);
