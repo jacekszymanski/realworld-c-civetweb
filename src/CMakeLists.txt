@@ -5,10 +5,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(TARGET_NAME ${PROJECT_NAME})
 set(LIBRARY_NAME lib_${TARGET_NAME})
 
-find_package(civetweb REQUIRED)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${civetweb_INCLUDE_DIR})
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DLOGLEVEL=5")
 
 FILE(GLOB AppFiles "app/*.c")
 FILE(GLOB DbFiles "db/*.c")
@@ -29,6 +26,7 @@ add_library(${LIBRARY_NAME} STATIC
 )
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME ${TARGET_NAME})
+target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(${TARGET_NAME}
    main.c
