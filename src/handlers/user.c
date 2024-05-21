@@ -10,11 +10,10 @@
 #include <openapi/model/login_request.h>
 
 #include <app/util.h>
-#include <app/db.h>
 #include <app/log.h>
 #include <app/macros.h>
 #include <app/appctx.h>
-
+#include <db/db.h>
 
 // forward decls to be moved to util
 int send_response(struct reqctx *ctx);

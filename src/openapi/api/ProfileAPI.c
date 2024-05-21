@@ -4,10 +4,10 @@
 #include "ProfileAPI.h"
 
 #include <app/appctx.h>
-#include <app/db.h>
 #include <app/log.h>
 #include <app/macros.h>
 #include <app/util.h>
+#include <db/db.h>
 
 #define MAX_NUMBER_LENGTH 16
 #define MAX_BUFFER_LENGTH 4096

@@ -3,9 +3,10 @@
 #include <string.h>
 
 #include "db.h"
-#include "log.h"
-#include "util.h"
-#include "appctx.h"
+
+#include <app/log.h>
+#include <app/util.h>
+#include <app/appctx.h>
 
 #include <openapi/model/user.h>
 #include <openapi/model/profile.h>

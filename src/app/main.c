@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
 #include <civetweb.h>
 #include <sqlite3.h>
 
 #include "stubs.h"
-#include "db.h"
 #include "log.h"
+
+#include <db/db.h>
 
 #include <platform/platform.h>
 #include <handlers/user.h>

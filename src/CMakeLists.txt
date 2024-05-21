@@ -10,10 +10,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${civetweb_INCLUDE_DIR})
 
 FILE(GLOB AppFiles "app/*.c")
+FILE(GLOB DbFiles "db/*.c")
 FILE(GLOB ModelFiles "openapi/model/*.c")
 FILE(GLOB HandlerFiles "handlers/*.c")
+
 add_executable(${TARGET_NAME}
    ${AppFiles}
+   ${DbFiles}
    ${ModelFiles}
    ${HandlerFiles}
 
