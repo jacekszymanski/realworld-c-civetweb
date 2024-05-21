@@ -74,10 +74,6 @@ cJSON *profile_convertToJSON(profile_t *profile) {
     }
 
 
-    // profile->following
-    if (!profile->following) {
-        goto fail;
-    }
     if(cJSON_AddBoolToObject(item, "following", profile->following) == NULL) {
     goto fail; //Bool
     }
@@ -100,7 +96,7 @@ profile_t *profile_parseFromJSON(cJSON *profileJSON){
         goto end;
     }
 
-    
+
     if(!cJSON_IsString(username))
     {
     goto end; //String
@@ -112,7 +108,7 @@ profile_t *profile_parseFromJSON(cJSON *profileJSON){
         goto end;
     }
 
-    
+
     if(!cJSON_IsString(bio))
     {
     goto end; //String
@@ -124,7 +120,7 @@ profile_t *profile_parseFromJSON(cJSON *profileJSON){
         goto end;
     }
 
-    
+
     if(!cJSON_IsString(image))
     {
     goto end; //String
@@ -136,7 +132,7 @@ profile_t *profile_parseFromJSON(cJSON *profileJSON){
         goto end;
     }
 
-    
+
     if(!cJSON_IsBool(following))
     {
     goto end; //Bool

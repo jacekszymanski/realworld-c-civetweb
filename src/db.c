@@ -8,6 +8,7 @@
 #include "appctx.h"
 
 #include "openapi/model/user.h"
+#include "openapi/model/profile.h"
 
 struct table {
   const char *name;
@@ -342,4 +343,68 @@ user_t *db_find_user_by_username(sqlite3 *db, const char *username) {
 
   return user;
 
+}
+
+profile_t *db_get_profile_by_username(sqlite3 *db, const char *username, const char *current_username) {
+  profile_t *profile = NULL;
+
+  if (username == NULL || strlen(username) == 0 || open_db(&db) < 0) {
+    return NULL;
+  }
+
+  // a hack: user cannot follow themself, so if no user is logged in it will make
+  // the "following" field 0
+  const char *otheruser = current_username ? current_username : username;
+
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db,
+      "SELECT "
+      "u.username, u.bio, u.image, "
+      "(SELECT COUNT(*) FROM follows "
+        "WHERE followed = u.id and follower = (SELECT u2.id FROM users u2 WHERE u2.username = ?)) as following "
+      "FROM users u WHERE u.username = ?",
+      -1, &stmt, NULL);
+  if (rc != SQLITE_OK) {
+    WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
+    return NULL;
+  }
+
+  rc = sqlite3_bind_text(stmt, 1, otheruser, -1, SQLITE_STATIC);
+  if (rc != SQLITE_OK) {
+    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
+    sqlite3_finalize(stmt);
+    return NULL;
+  }
+
+  rc = sqlite3_bind_text(stmt, 2, username, -1, SQLITE_STATIC);
+  if (rc != SQLITE_OK) {
+    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
+    sqlite3_finalize(stmt);
+    return NULL;
+  }
+
+  // execute statement
+  rc = sqlite3_step(stmt);
+
+  if (rc == SQLITE_ROW) {
+    DLOG("found profile %s\n", username);
+    profile = profile_create(
+      safe_strdup((const char *)sqlite3_column_text(stmt, 0)), // username
+      safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // bio
+      safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // image
+      sqlite3_column_int(stmt, 3) // followers
+    );
+
+    if (profile == NULL) {
+      WLOGS("Cannot create profile object");
+    }
+    else {
+      VLOGS("created profile object");
+    }
+
+  }
+
+  sqlite3_finalize(stmt);
+
+  return profile;
 }

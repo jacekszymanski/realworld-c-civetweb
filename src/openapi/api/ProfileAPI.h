@@ -6,13 +6,14 @@
 #include "../model/generic_error_model.h"
 #include "../model/get_profile_by_username_200_response.h"
 
+#include "../../appctx.h"
 
 // Follow a user
 //
 // Follow a user by username
 //
 get_profile_by_username_200_response_t*
-ProfileAPI_followUserByUsername(struct reqctx *ctx, char * username );
+ProfileAPI_followUserByUsername(struct reqctx *ctx, const char * username );
 
 
 // Get a profile
@@ -20,7 +21,7 @@ ProfileAPI_followUserByUsername(struct reqctx *ctx, char * username );
 // Get a profile of a user of the system. Auth is optional
 //
 get_profile_by_username_200_response_t*
-ProfileAPI_getProfileByUsername(struct reqctx *ctx, char * username );
+ProfileAPI_getProfileByUsername(struct reqctx *ctx, const char * username );
 
 
 // Unfollow a user
@@ -28,6 +29,6 @@ ProfileAPI_getProfileByUsername(struct reqctx *ctx, char * username );
 // Unfollow a user by username
 //
 get_profile_by_username_200_response_t*
-ProfileAPI_unfollowUserByUsername(struct reqctx *ctx, char * username );
+ProfileAPI_unfollowUserByUsername(struct reqctx *ctx, const char * username );
 
 

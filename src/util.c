@@ -73,6 +73,7 @@ char **match_handler_pattern(const char *pattern, const char *uri) {
   // this function returns a newly allocated array of strings with the values of the variables
   // or NULL if the pattern does not match the uri
   // the query string is not considered
+  VLOG("match_handler_pattern: pattern: %s, uri: %s\n", pattern, uri);
 
   char **matches = NULL;
 
@@ -119,6 +120,8 @@ char **match_handler_pattern(const char *pattern, const char *uri) {
 
       matches[used_vars] = value;
       used_vars++;
+
+      u = end;
     }
     else if (*p == *u) {
       p++;

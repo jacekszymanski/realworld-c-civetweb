@@ -17,6 +17,7 @@ add_executable(${TARGET_NAME}
    util.c
 
    openapi/api/UserAndAuthenticationAPI.c
+   openapi/api/ProfileAPI.c
    ${ModelFiles}
    ${HandlerFiles}
    openapi/util/list.c
