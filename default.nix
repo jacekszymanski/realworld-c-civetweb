@@ -16,6 +16,7 @@ stdenv.mkDerivation rec {
     sqlite-dev
     l8w8jwt-dev
     cjson-dev
+    cmocka-dev
   ];
 
   preConfigure = ''
