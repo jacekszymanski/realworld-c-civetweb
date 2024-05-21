@@ -1,3 +1,4 @@
 - doesn't stop on initial open_db error
 - returns 500 on ordinary login failure
 - doesn't save image for new users
+- style: src/app should be src/util, stubs may move to src/ as long as they exist
