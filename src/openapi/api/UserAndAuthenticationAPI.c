@@ -9,11 +9,12 @@
 
 #include "../model/new_user.h"
 #include "../model/user.h"
-#include "../../db.h"
-#include "../../log.h"
-#include "../../macros.h"
-#include "../../appctx.h"
-#include "../../util.h"
+
+#include <app/db.h>
+#include <app/log.h>
+#include <app/macros.h>
+#include <app/appctx.h>
+#include <app/util.h>
 
 #define MAX_NUMBER_LENGTH 16
 #define MAX_BUFFER_LENGTH 4096

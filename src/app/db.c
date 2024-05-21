@@ -7,8 +7,8 @@
 #include "util.h"
 #include "appctx.h"
 
-#include "openapi/model/user.h"
-#include "openapi/model/profile.h"
+#include <openapi/model/user.h>
+#include <openapi/model/profile.h>
 
 struct table {
   const char *name;

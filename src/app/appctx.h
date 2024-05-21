@@ -5,8 +5,9 @@
 #include <sqlite3.h>
 #include <civetweb.h>
 #include <cjson/cJSON.h>
+
 #include "macros.h"
-#include "openapi/model/user.h"
+#include <openapi/model/user.h>
 
 struct reqctx {
   struct mg_connection *conn;

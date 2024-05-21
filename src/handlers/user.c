@@ -2,18 +2,19 @@
 #include <civetweb.h>
 #include <string.h>
 
-#include "../api/UserAndAuthenticationAPI.h"
-#include "../api/ProfileAPI.h"
-#include "../model/create_user_request.h"
-#include "../model/generic_error_model.h"
-#include "../model/login_200_response.h"
-#include "../model/login_request.h"
+#include <openapi/api/UserAndAuthenticationAPI.h>
+#include <openapi/api/ProfileAPI.h>
+#include <openapi/model/create_user_request.h>
+#include <openapi/model/generic_error_model.h>
+#include <openapi/model/login_200_response.h>
+#include <openapi/model/login_request.h>
 
-#include "../../util.h"
-#include "../../log.h"
-#include "../../macros.h"
-#include "../../db.h"
-#include "../../appctx.h"
+#include <app/util.h>
+#include <app/db.h>
+#include <app/log.h>
+#include <app/macros.h>
+#include <app/appctx.h>
+
 
 // forward decls to be moved to util
 int send_response(struct reqctx *ctx);

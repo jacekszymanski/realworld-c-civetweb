@@ -2,7 +2,8 @@
 #define __HANDLERS_USER_H__
 
 #include <civetweb.h>
-#include "../../appctx.h"
+
+#include <app/appctx.h>
 
 int request_handler(struct mg_connection *conn, void *cbdata);
 

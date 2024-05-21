@@ -6,20 +6,21 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(civetweb REQUIRED)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${civetweb_INCLUDE_DIR})
 
+FILE(GLOB AppFiles "app/*.c")
 FILE(GLOB ModelFiles "openapi/model/*.c")
-FILE(GLOB HandlerFiles "openapi/handlers/*.c")
+FILE(GLOB HandlerFiles "handlers/*.c")
 add_executable(${TARGET_NAME}
-   main.c
-   stubs.c
-   db.c
-   util.c
-
-   openapi/api/UserAndAuthenticationAPI.c
-   openapi/api/ProfileAPI.c
+   ${AppFiles}
    ${ModelFiles}
    ${HandlerFiles}
+
+   # FIXME cannot now add /api/ with GLOB as most have compile errors
+   openapi/api/UserAndAuthenticationAPI.c
+   openapi/api/ProfileAPI.c
+
    openapi/util/list.c
 )
 

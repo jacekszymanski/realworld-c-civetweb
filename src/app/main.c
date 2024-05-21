@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "platform/platform.h"
 
 #include <civetweb.h>
 #include <sqlite3.h>
@@ -11,7 +10,8 @@
 #include "db.h"
 #include "log.h"
 
-#include "openapi/handlers/user.h"
+#include <platform/platform.h>
+#include <handlers/user.h>
 
 #define DBPATH "data/conduit.db"
 

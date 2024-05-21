@@ -2,8 +2,9 @@
 #define __DB_H__
 
 #include <sqlite3.h>
-#include "openapi/model/user.h"
-#include "openapi/model/profile.h"
+
+#include <openapi/model/user.h>
+#include <openapi/model/profile.h>
 
 int check_and_init_db(const char* db_path);
 

@@ -9,7 +9,7 @@
 #include "log.h"
 #include "appctx.h"
 
-#include "openapi/model/user.h"
+#include <openapi/model/user.h>
 
 #define BUF_INCR 4096
 

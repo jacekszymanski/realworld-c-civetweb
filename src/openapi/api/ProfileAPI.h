@@ -6,7 +6,7 @@
 #include "../model/generic_error_model.h"
 #include "../model/get_profile_by_username_200_response.h"
 
-#include "../../appctx.h"
+#include <app/appctx.h>
 
 // Follow a user
 //

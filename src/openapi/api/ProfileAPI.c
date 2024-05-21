@@ -3,11 +3,11 @@
 #include <ctype.h>
 #include "ProfileAPI.h"
 
-#include "../../appctx.h"
-#include "../../db.h"
-#include "../../log.h"
-#include "../../macros.h"
-#include "../../util.h"
+#include <app/appctx.h>
+#include <app/db.h>
+#include <app/log.h>
+#include <app/macros.h>
+#include <app/util.h>
 
 #define MAX_NUMBER_LENGTH 16
 #define MAX_BUFFER_LENGTH 4096

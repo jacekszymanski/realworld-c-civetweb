@@ -9,7 +9,7 @@
 #include "../model/login_request.h"
 #include "../model/update_current_user_request.h"
 
-#include "../../appctx.h"
+#include <app/appctx.h>
 
 
 // Register a new user
