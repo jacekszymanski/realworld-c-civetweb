@@ -4,8 +4,9 @@
 #include <civetweb.h>
 #include <sqlite3.h>
 
-#include "stubs.h"
-#include "log.h"
+#include <app/stubs.h>
+#include <app/log.h>
+#include <app/appctx.h>
 
 #include <db/db.h>
 
