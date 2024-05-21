@@ -13,11 +13,11 @@
  * 4 - trace (TLOG)
  * 5 - vomit (VLOG)
  *
- * default: 2
+ * default: 5 while I'm writing, then 2
  */
 
 #ifndef LOGLEVEL
-#define LOGLEVEL 2
+#define LOGLEVEL 5
 #endif
 
 #if LOGLEVEL >= 5
