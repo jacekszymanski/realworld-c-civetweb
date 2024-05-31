@@ -41,11 +41,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1716898784,
-        "narHash": "sha256-OlwIjcE3uxiw/ozIP29KV/cMauPvZ/5+IWHe0jnC0Dc=",
+        "lastModified": 1717258135,
+        "narHash": "sha256-Gh2obAUBJ8rDCi/9JZAf9VmXmPkvXvxFOkIewaIq3Eg=",
         "owner": "jacekszymanski",
         "repo": "nur-dev",
-        "rev": "39c839969a8c7f4142e17ba3894812fbc9300d25",
+        "rev": "1e2a9ef32914a3568f13859f7a5b1d2715e70966",
         "type": "github"
       },
       "original": {
