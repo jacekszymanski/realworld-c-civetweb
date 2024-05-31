@@ -186,9 +186,14 @@ void reqctx_set_errorf(struct reqctx *ctx, int code, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   char *msg;
-  vasprintf(&msg, fmt, args);
+  int res = vasprintf(&msg, fmt, args);
   va_end(args);
-  reqctx_set_error(ctx, code, msg);
+  if (res >= 0) {
+    reqctx_set_error(ctx, code, msg);
+  }
+  else {
+    ELOGS("could't even return error");
+  }
   free(msg);
 }
 
