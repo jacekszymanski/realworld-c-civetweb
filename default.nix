@@ -20,7 +20,7 @@ stdenv.mkDerivation rec {
   ];
 
   preConfigure = ''
-    CFLAGS+=" -g -O0 -Wall -Wextra -Werror "
+    CFLAGS+=" -g -Wall -Wextra -Werror "
     CFLAGS+=" -Wno-unused-parameter -Wno-unused-variable "
     CFLAGS+=" -DLOGLEVEL=5 "
     CFLAGS+=" -ffile-prefix-map=$(echo $NIX_BUILD_TOP|sed -e s,/private,,g)/= "

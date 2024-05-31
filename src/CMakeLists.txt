@@ -5,6 +5,15 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(TARGET_NAME ${PROJECT_NAME})
 set(LIBRARY_NAME lib_${TARGET_NAME})
 
+find_package(civetweb REQUIRED)
+find_package(cmocka REQUIRED) # TODO fix use only for test builds
+find_library(SQLITE3_LIB sqlite3 REQUIRED)
+find_library(CJSON_LIB cjson REQUIRED)
+find_library(L8W8JWT_LIB l8w8jwt REQUIRED)
+find_library(M_LIB m REQUIRED)
+
+list(APPEND PROD_LIBS civetweb::civetweb ${SQLITE3_LIB} ${CJSON_LIB} ${L8W8JWT_LIB} ${M_LIB})
+
 #For now
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -35,6 +44,6 @@ add_executable(${TARGET_NAME}
    main.c
 )
 
-target_link_libraries(${TARGET_NAME} ${LIBRARY_NAME})
+target_link_libraries(${TARGET_NAME} ${LIBRARY_NAME} ${PROD_LIBS})
 
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
