@@ -223,84 +223,84 @@ int db_create_user(sqlite3 *db, const char* username, const char* email, const c
 
 }
 
-user_t *db_find_user_by_email(sqlite3 *db, const char *email) {
-  user_t *user = NULL;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsequence-point"
+#endif
 
-  if (email == NULL || strlen(email) == 0 || open_db(&db) < 0) {
-    return NULL;
+#define SQLITE_GET(type) SQLITE_GET_##type(stmt, idx++)
+#define SQLITE_GET_text(stmt, idx) safe_strdup((const char *)sqlite3_column_text(stmt, idx))
+#define SQLITE_GET_int(stmt, idx) sqlite3_column_int(stmt, idx)
+
+#define DB_FIND_OBJECT_FN(name, ...) \
+  name##_t *db_find_##name(sqlite3 *db, const char *query, int param_cnt, int param_types[], void* param_values[]) { \
+    name##_t *name = NULL; \
+    \
+    if (open_db(&db) < 0 || query == NULL ||  param_types == NULL || param_values == NULL) { \
+      return NULL; \
+    } \
+    \
+    for (int i = 0; i < param_cnt; i++) { \
+      if (param_values[i] == NULL )  { \
+        return NULL; \
+      } \
+    } \
+    \
+    sqlite3_stmt *stmt; \
+    \
+    SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db, query, -1, &stmt, NULL)); \
+    \
+    for (int i = 0; i < param_cnt; i++) { \
+      switch (param_types[i]) { \
+        case SQLITE_INTEGER: \
+          SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_int(stmt, i + 1, *((int *)(param_values[i])))); \
+          break; \
+        case SQLITE_TEXT: \
+          SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, i + 1, (const char *)param_values[i], -1, SQLITE_STATIC)); \
+          break; \
+        default: \
+          return NULL; \
+      } \
+    } \
+    \
+    SQLITE_DO_OR_DIE_NULL_RC(db, sqlite3_step(stmt), SQLITE_ROW); \
+    DLOGS("found " #name " %s\n"); \
+    int idx = 0; \
+    name = name##_create( \
+       FOR_EACH_L(SQLITE_GET, __VA_ARGS__) \
+    ); \
+    \
+    if (name == NULL) { \
+      WLOGS("Cannot create " #name " object"); \
+    } \
+    else { \
+      VLOGS("created " #name " object"); \
+    } \
+    \
+    sqlite3_finalize(stmt); \
+    \
+    return name; \
   }
 
-  sqlite3_stmt *stmt;
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db,
-      "SELECT id, username, email, bio, image, password FROM users WHERE email = ?", -1, &stmt, NULL));
+DB_FIND_OBJECT_FN(user, text, text, text, text, text)
+DB_FIND_OBJECT_FN(profile, text, text, text, int)
 
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 1, email, -1, SQLITE_STATIC));
+// TODO verify this in clang
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
-  // execute statement
-  int rc = sqlite3_step(stmt);
-
-  if (rc == SQLITE_ROW) {
-    DLOG("found user %s\n", email);
-    user = user_create(
-      safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // email
-      safe_strdup((const char *)sqlite3_column_text(stmt, 5)), // abusing token field for password
-      safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // username
-      safe_strdup((const char *)sqlite3_column_text(stmt, 3)), // bio
-      safe_strdup((const char *)sqlite3_column_text(stmt, 4))  // image
-    );
-
-    if (user == NULL) {
-      WLOGS("Cannot create user object");
-    }
-    else {
-      VLOGS("created user object");
-    }
-  }
-  else {
-    SQLITE_DIE(db, NULL);
-  }
-
-  sqlite3_finalize(stmt);
-
-  return user;
-}
-
+#define USER_QUERY(param) "SELECT username, email, bio, image, password FROM users WHERE " param " = ?"
 user_t *db_find_user_by_username(sqlite3 *db, const char *username) {
-  user_t *user = NULL;
-
-  if (username == NULL || strlen(username) == 0 || open_db(&db) < 0) {
-    return NULL;
-  }
-
-  sqlite3_stmt *stmt;
-
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db,
-      "SELECT id, username, email, bio, image, password FROM users WHERE username = ?", -1, &stmt, NULL));
-
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC));
-
-  SQLITE_DO_OR_DIE_NULL_RC(db, sqlite3_step(stmt), SQLITE_ROW);
-  DLOG("found user %s\n", username);
-  user = user_create(
-      safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // email
-      safe_strdup((const char *)sqlite3_column_text(stmt, 5)), // abusing token field for password
-      safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // username
-      safe_strdup((const char *)sqlite3_column_text(stmt, 3)), // bio
-      safe_strdup((const char *)sqlite3_column_text(stmt, 4))  // image
-  );
-
-  if (user == NULL) {
-    WLOGS("Cannot create user object");
-  }
-  else {
-    VLOGS("created user object");
-  }
-
-  sqlite3_finalize(stmt);
-
-  return user;
-
+  return db_find_user(db,
+        USER_QUERY("username"), 1, (int[]){SQLITE_TEXT}, (void*[]){(void *)username});
 }
+
+user_t *db_find_user_by_email(sqlite3 *db, const char *email) {
+  return db_find_user(db,
+        USER_QUERY("email"), 1, (int[]){SQLITE_TEXT}, (void*[]){(void *)email});
+}
+#undef USER_QUERY
 
 #define PROFILE_QUERY   "SELECT " \
       "u.username, u.bio, u.image, " \
@@ -310,43 +310,9 @@ user_t *db_find_user_by_username(sqlite3 *db, const char *username) {
       "FROM users u WHERE u.username = ?"
 
 profile_t *db_get_profile_by_username(sqlite3 *db, const char *username, const char *current_username) {
-  profile_t *profile = NULL;
-
-  if (username == NULL || strlen(username) == 0 || open_db(&db) < 0) {
-    return NULL;
-  }
-
-  // a hack: user cannot follow themself, so if no user is logged in it will make
-  // the "following" field 0
-  const char *otheruser = current_username ? current_username : username;
-
-  sqlite3_stmt *stmt;
-
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db, PROFILE_QUERY, -1, &stmt, NULL));
-
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 1, otheruser, -1, SQLITE_STATIC));
-  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 2, username, -1, SQLITE_STATIC));
-
-  SQLITE_DO_OR_DIE_NULL_RC(db, sqlite3_step(stmt), SQLITE_ROW);
-
-  DLOG("found profile %s\n", username);
-  profile = profile_create(
-      safe_strdup((const char *)sqlite3_column_text(stmt, 0)), // username
-      safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // bio
-      safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // image
-      sqlite3_column_int(stmt, 3)                              // followers
-  );
-
-  if (profile == NULL) {
-    WLOGS("Cannot create profile object");
-  }
-  else {
-    VLOGS("created profile object");
-  }
-
-  sqlite3_finalize(stmt);
-
-  return profile;
+  const char *cur_username = current_username ? current_username : username;
+  return db_find_profile(db, PROFILE_QUERY, 2, (int[]){SQLITE_TEXT, SQLITE_TEXT},
+      (void*[]){(void *)cur_username, (void *)username});
 }
 
 #undef PROFILE_QUERY
