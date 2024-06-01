@@ -19,6 +19,10 @@ set(CMAKE_BUILD_TYPE Debug)
 
 string(APPEND CMAKE_C_FLAGS_DEBUG " -DLOGLEVEL=5 ")
 
+string(APPEND CMAKE_C_FLAGS " -ffile-prefix-map=${CMAKE_SOURCE_DIR}/=  ")
+string(APPEND CMAKE_C_FLAGS " -g -Wall -Wextra -Werror ")
+string(APPEND CMAKE_C_FLAGS " -Wno-unused-parameter -Wno-unused-variable ")
+
 FILE(GLOB AppFiles "app/*.c")
 FILE(GLOB DbFiles "db/*.c")
 FILE(GLOB ModelFiles "openapi/model/*.c")
