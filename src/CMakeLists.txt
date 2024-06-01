@@ -17,7 +17,7 @@ list(APPEND PROD_LIBS civetweb::civetweb ${SQLITE3_LIB} ${CJSON_LIB} ${L8W8JWT_L
 #For now
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DLOGLEVEL=5")
+string(APPEND CMAKE_C_FLAGS_DEBUG " -DLOGLEVEL=5 ")
 
 FILE(GLOB AppFiles "app/*.c")
 FILE(GLOB DbFiles "db/*.c")
