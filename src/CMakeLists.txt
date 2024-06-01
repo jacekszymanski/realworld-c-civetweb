@@ -5,6 +5,19 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(TARGET_NAME ${PROJECT_NAME})
 set(LIBRARY_NAME lib_${TARGET_NAME})
 
+# __VA_OPT__ detection
+include(CheckSourceRuns)
+check_source_runs(C "
+#define PP_THIRD_ARG(a,b,c,...) c
+#define VA_OPT_SUPPORTED_I(...) PP_THIRD_ARG(__VA_OPT__(,),0,1,)
+#define VA_OPT_SUPPORTED VA_OPT_SUPPORTED_I(?)
+
+void main() {
+  exit(VA_OPT_SUPPORTED);
+}
+
+" HAVE_VA_OPT)
+
 find_package(civetweb REQUIRED)
 find_package(cmocka REQUIRED) # TODO fix use only for test builds
 find_library(SQLITE3_LIB sqlite3 REQUIRED)
@@ -17,6 +30,7 @@ list(APPEND PROD_LIBS civetweb::civetweb ${SQLITE3_LIB} ${CJSON_LIB} ${L8W8JWT_L
 #For now
 set(CMAKE_BUILD_TYPE Debug)
 
+string(APPEND CMAKE_C_FLAGS " -DHAVE_VA_OPT=${HAVE_VA_OPT} ")
 string(APPEND CMAKE_C_FLAGS_DEBUG " -DLOGLEVEL=5 ")
 
 string(APPEND CMAKE_C_FLAGS " -ffile-prefix-map=${CMAKE_SOURCE_DIR}/=  ")
