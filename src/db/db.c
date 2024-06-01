@@ -205,40 +205,15 @@ int db_create_user(sqlite3 *db, const char* username, const char* email, const c
   }
 
   sqlite3_stmt *stmt;
-  int rc = sqlite3_prepare_v2(db, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", -1, &stmt, NULL);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    return -2;
-  }
+  SQLITE_DO_OR_DIE(db, sqlite3_prepare_v2(db,
+      "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", -1, &stmt, NULL));
 
+  int idx = 1;
+  SQLITE_DO_OR_DIE(db, sqlite3_bind_text(stmt, idx++, username, -1, SQLITE_STATIC));
+  SQLITE_DO_OR_DIE(db, sqlite3_bind_text(stmt, idx++, email, -1, SQLITE_STATIC));
+  SQLITE_DO_OR_DIE(db, sqlite3_bind_text(stmt, idx++, password, -1, SQLITE_STATIC));
 
-  rc = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return -3;
-  }
-
-  rc = sqlite3_bind_text(stmt, 2, email, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind email: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return -4;
-  }
-
-  rc = sqlite3_bind_text(stmt, 3, password, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind password: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return -5;
-  }
-
-  rc = sqlite3_step(stmt);
-  if (rc != SQLITE_DONE) {
-    WLOG("Cannot step statement: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return -6;
-  }
+  SQLITE_DO_OR_DIE_RC(db, sqlite3_step(stmt), SQLITE_DONE);
 
   DLOG("created user %s %s\n", username, email);
 
@@ -256,21 +231,13 @@ user_t *db_find_user_by_email(sqlite3 *db, const char *email) {
   }
 
   sqlite3_stmt *stmt;
-  int rc = sqlite3_prepare_v2(db, "SELECT id, username, email, bio, image, password FROM users WHERE email = ?", -1, &stmt, NULL);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    return NULL;
-  }
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db,
+      "SELECT id, username, email, bio, image, password FROM users WHERE email = ?", -1, &stmt, NULL));
 
-  rc = sqlite3_bind_text(stmt, 1, email, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind email: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return NULL;
-  }
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 1, email, -1, SQLITE_STATIC));
 
   // execute statement
-  rc = sqlite3_step(stmt);
+  int rc = sqlite3_step(stmt);
 
   if (rc == SQLITE_ROW) {
     DLOG("found user %s\n", email);
@@ -288,7 +255,9 @@ user_t *db_find_user_by_email(sqlite3 *db, const char *email) {
     else {
       VLOGS("created user object");
     }
-
+  }
+  else {
+    SQLITE_DIE(db, NULL);
   }
 
   sqlite3_finalize(stmt);
@@ -304,40 +273,27 @@ user_t *db_find_user_by_username(sqlite3 *db, const char *username) {
   }
 
   sqlite3_stmt *stmt;
-  int rc = sqlite3_prepare_v2(db, "SELECT id, username, email, bio, image, password FROM users WHERE username = ?", -1, &stmt, NULL);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    return NULL;
-  }
 
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db,
+      "SELECT id, username, email, bio, image, password FROM users WHERE username = ?", -1, &stmt, NULL));
 
-  rc = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return NULL;
-  }
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC));
 
-  // execute statement
-  rc = sqlite3_step(stmt);
-
-  if (rc == SQLITE_ROW) {
-    DLOG("found user %s\n", username);
-    user = user_create(
+  SQLITE_DO_OR_DIE_NULL_RC(db, sqlite3_step(stmt), SQLITE_ROW);
+  DLOG("found user %s\n", username);
+  user = user_create(
       safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // email
       safe_strdup((const char *)sqlite3_column_text(stmt, 5)), // abusing token field for password
       safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // username
       safe_strdup((const char *)sqlite3_column_text(stmt, 3)), // bio
       safe_strdup((const char *)sqlite3_column_text(stmt, 4))  // image
-    );
+  );
 
-    if (user == NULL) {
-      WLOGS("Cannot create user object");
-    }
-    else {
-      VLOGS("created user object");
-    }
-
+  if (user == NULL) {
+    WLOGS("Cannot create user object");
+  }
+  else {
+    VLOGS("created user object");
   }
 
   sqlite3_finalize(stmt);
@@ -345,6 +301,13 @@ user_t *db_find_user_by_username(sqlite3 *db, const char *username) {
   return user;
 
 }
+
+#define PROFILE_QUERY   "SELECT " \
+      "u.username, u.bio, u.image, " \
+      "(SELECT COUNT(*) FROM follows " \
+        "WHERE followed = u.id and " \
+        " follower = (SELECT u2.id FROM users u2 WHERE u2.username = ?)) as following " \
+      "FROM users u WHERE u.username = ?"
 
 profile_t *db_get_profile_by_username(sqlite3 *db, const char *username, const char *current_username) {
   profile_t *profile = NULL;
@@ -358,54 +321,32 @@ profile_t *db_get_profile_by_username(sqlite3 *db, const char *username, const c
   const char *otheruser = current_username ? current_username : username;
 
   sqlite3_stmt *stmt;
-  int rc = sqlite3_prepare_v2(db,
-      "SELECT "
-      "u.username, u.bio, u.image, "
-      "(SELECT COUNT(*) FROM follows "
-        "WHERE followed = u.id and follower = (SELECT u2.id FROM users u2 WHERE u2.username = ?)) as following "
-      "FROM users u WHERE u.username = ?",
-      -1, &stmt, NULL);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot prepare statement: %s\n", sqlite3_errmsg(db));
-    return NULL;
-  }
 
-  rc = sqlite3_bind_text(stmt, 1, otheruser, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return NULL;
-  }
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_prepare_v2(db, PROFILE_QUERY, -1, &stmt, NULL));
 
-  rc = sqlite3_bind_text(stmt, 2, username, -1, SQLITE_STATIC);
-  if (rc != SQLITE_OK) {
-    WLOG("Cannot bind username: %s\n", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return NULL;
-  }
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 1, otheruser, -1, SQLITE_STATIC));
+  SQLITE_DO_OR_DIE_NULL(db, sqlite3_bind_text(stmt, 2, username, -1, SQLITE_STATIC));
 
-  // execute statement
-  rc = sqlite3_step(stmt);
+  SQLITE_DO_OR_DIE_NULL_RC(db, sqlite3_step(stmt), SQLITE_ROW);
 
-  if (rc == SQLITE_ROW) {
-    DLOG("found profile %s\n", username);
-    profile = profile_create(
+  DLOG("found profile %s\n", username);
+  profile = profile_create(
       safe_strdup((const char *)sqlite3_column_text(stmt, 0)), // username
       safe_strdup((const char *)sqlite3_column_text(stmt, 1)), // bio
       safe_strdup((const char *)sqlite3_column_text(stmt, 2)), // image
-      sqlite3_column_int(stmt, 3) // followers
-    );
+      sqlite3_column_int(stmt, 3)                              // followers
+  );
 
-    if (profile == NULL) {
-      WLOGS("Cannot create profile object");
-    }
-    else {
-      VLOGS("created profile object");
-    }
-
+  if (profile == NULL) {
+    WLOGS("Cannot create profile object");
+  }
+  else {
+    VLOGS("created profile object");
   }
 
   sqlite3_finalize(stmt);
 
   return profile;
 }
+
+#undef PROFILE_QUERY

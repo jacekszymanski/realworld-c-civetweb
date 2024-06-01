@@ -19,4 +19,24 @@ int open_db(sqlite3** db);
 int close_db(sqlite3* db);
 int shutdown_db();
 
+#define SQLITE_DIE(db, ret) do { \
+    WLOG("database error: %s\n", sqlite3_errmsg(db)); \
+    return (ret); \
+  } while (0)
+
+#define SQLITE_DO_OR_DIE_RC_RET(db, what, rcok, ret) do { \
+    int __rc = what; \
+    if (__rc != (rcok)) { \
+      SQLITE_DIE(db, ret); \
+    } \
+  } while (0)
+
+#define SQLITE_DO_OR_DIE_RET(db, what, ret) SQLITE_DO_OR_DIE_RC_RET(db, what, SQLITE_OK, ret)
+
+#define SQLITE_DO_OR_DIE_RC(db, what, rcok) SQLITE_DO_OR_DIE_RC_RET(db, what, rcok, -1)
+#define SQLITE_DO_OR_DIE(db, what) SQLITE_DO_OR_DIE_RET(db, what, -1)
+
+#define SQLITE_DO_OR_DIE_NULL_RC(db, what, rcok) SQLITE_DO_OR_DIE_RC_RET(db, what, rcok, NULL)
+#define SQLITE_DO_OR_DIE_NULL(db, what) SQLITE_DO_OR_DIE_NULL_RC(db, what, SQLITE_OK)
+
 #endif // __DB_H__
